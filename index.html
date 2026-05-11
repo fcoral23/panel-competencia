@@ -94,8 +94,8 @@ function getStatus(event, allowedAI) {
 
 async function fetchSheets() {
   try {
-    const eventsRes = await fetch('https://docs.google.com/spreadsheets/d/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/edit?gid=1548035625#gid=1548035625');
-    const configRes = await fetch('https://docs.google.com/spreadsheets/d/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/edit?gid=1832744232#gid=1832744232');
+    const eventsRes = await fetch('https://docs.google.com/spreadsheets/d/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/edit?gid=1548035625#gid=1548035625/Eventos');
+    const configRes = await fetch('https://docs.google.com/spreadsheets/d/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/edit?gid=1832744232#gid=1832744232/config');
 
     events = await eventsRes.json();
     const rawConfig = await configRes.json();
