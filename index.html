@@ -42,14 +42,16 @@
     }
     .prompt-container {
       position: absolute;
-      top: 16px;
+      bottom: 16px;
+      left: 16px;
       right: 16px;
-      right: 16px;
-      height: 38%;
+      height: 38%; /* AJUSTA AQUÍ altura zona prompts */
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
       flex-direction: column-reverse;
+      justify-content: flex-start;
+      align-items: stretch;
       gap: 10px;
       scrollbar-width: none;
       -ms-overflow-style: none;
@@ -66,15 +68,22 @@
       border-radius: 18px;
       font-size: 14px;
       line-height: 1.35;
-      max-height: calc(1.35em * 5);
+      max-height: calc(1.35em * 5); /* AJUSTA AQUÍ max líneas */
       overflow-y: auto;
       overflow-x: hidden;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      width: 100%;
+      box-sizing: border-box;
       flex-shrink: 0;
       backdrop-filter: blur(4px);
-      scrollbar-width: none;
+      scrollbar-width: thin;
     }
 
-    .prompt::-webkit-scrollbar { display: none; }
+    .prompt::-webkit-scrollbar {
+      width: 6px;
+    }
 
     .status {
       position: absolute;
@@ -119,6 +128,7 @@ async function fetchSheets() {
   try {
         const eventsRes = await fetch('https://opensheet.elk.sh/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/Eventos');
     const configRes = await fetch('https://opensheet.elk.sh/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/config');
+
 
     const newEvents = await eventsRes.json();
     const rawConfig = await configRes.json();
@@ -223,7 +233,7 @@ function updateStatusesOnly() {
 }
 
 fetchSheets();
-setInterval(fetchSheets, 15000);
+setInterval(fetchSheets, 15000); /* AJUSTA AQUÍ polling ms */
 setInterval(updateStatusesOnly, 1000);
 </script>
 </body>
