@@ -67,12 +67,7 @@
 </head>
 <body>
 <script>
-const CONFIG = [
-  { equipo: 'equipo 1', iaPermitida: 'ChatGPT' },
-  { equipo: 'equipo 2', iaPermitida: 'Gemini' },
-  { equipo: 'equipo 3', iaPermitida: 'Claude' },
-  { equipo: 'equipo 4', iaPermitida: 'ChatGPT' },
-];
+let CONFIG = [];
 
 let events = [];
 
@@ -99,8 +94,17 @@ function getStatus(event, allowedAI) {
 
 async function fetchSheets() {
   try {
-    const res = await fetch('https://docs.google.com/spreadsheets/d/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/edit?gid=1548035625#gid=1548035625/Eventos');
-    events = await res.json();
+    const eventsRes = await fetch('https://opensheet.elk.sh/YOUR_SHEET_ID/Eventos');
+    const configRes = await fetch('https://opensheet.elk.sh/YOUR_SHEET_ID/config');
+
+    events = await eventsRes.json();
+    const rawConfig = await configRes.json();
+
+    CONFIG = rawConfig.map(row => ({
+      equipo: row['Equipo'].toLowerCase(),
+      iaPermitida: row['IA Permitida']
+    }));
+
     render();
   } catch (e) {
     console.error(e);
