@@ -99,7 +99,7 @@ function getStatus(event, allowedAI) {
 
 async function fetchSheets() {
   try {
-    const res = await fetch('https://opensheet.elk.sh/YOUR_SHEET_ID/Eventos');
+    const res = await fetch('https://docs.google.com/spreadsheets/d/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/edit?gid=1548035625#gid=1548035625/Eventos');
     events = await res.json();
     render();
   } catch (e) {
