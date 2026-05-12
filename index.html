@@ -205,7 +205,7 @@ async function fetchSheets() {
 
     const ahora = new Date();
     const ultimoEvento = events[events.length - 1];
-    const tsEvento = ultimoEvento ? new Date(ultimoEvento.Timestamp) : null;
+    const tsEvento = ultimoEvento ? parseTimestamp(ultimoEvento.Timestamp) : null;
     const diff = tsEvento ? Math.round((ahora - tsEvento) / 1000) : '?';
     document.getElementById('debug-timer').textContent =
       `Fetch: ${ahora.toLocaleTimeString()} | Evento hace: ${diff}s`;
