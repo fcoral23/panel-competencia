@@ -164,6 +164,19 @@ function getStatus(event, allowedAI) {
   return 'SLEEPING';
 }
 
+function getTeamPrompts(teamEquipo) {
+  return events
+    .filter(e => (e.Equipo || '').toLowerCase() === teamEquipo && e['Tipo de evento'] === 'prompt_sent' && e.Prompt)
+    .sort((a, b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
+}
+
+function getLatestEvent(teamEquipo) {
+  const teamEvents = events
+    .filter(e => (e.Equipo || '').toLowerCase() === teamEquipo)
+    .sort((a, b) => parseTimestamp(b.Timestamp) - parseTimestamp(a.Timestamp));
+  return teamEvents[0] || null;
+}
+
 async function fetchSheets() {
   try {
     const eventsRes = await fetch(EVENTS_URL + '&t=' + Date.now(), { cache: 'no-store' });
@@ -187,7 +200,7 @@ async function fetchSheets() {
     render();
 
     const ahora = new Date();
-    const ultimoEvento = events[events.length - 1];
+    const ultimoEvento = getLatestEvent(CONFIG[0]?.equipo || '');
     const tsEvento = ultimoEvento ? parseTimestamp(ultimoEvento.Timestamp) : null;
     const diff = tsEvento ? Math.round((ahora - tsEvento) / 1000) : '?';
     const timer = document.getElementById('debug-timer');
@@ -202,14 +215,17 @@ function render() {
   document.body.innerHTML = '<div id="debug-timer" style="position:fixed;top:8px;right:12px;z-index:999;background:rgba(0,0,0,0.7);color:white;font-size:12px;padding:6px 10px;border-radius:8px;font-family:monospace;"></div>';
 
   CONFIG.forEach(team => {
-    const teamEvents = events
+    const latest = getLatestEvent(team.equipo);
+    const prompts = getTeamPrompts(team.equipo);
+    const corruption = events
       .filter(e => (e.Equipo || '').toLowerCase() === team.equipo)
-      .sort((a,b) => parseTimestamp(b.Timestamp) - parseTimestamp(a.Timestamp));
-
-    const latest = teamEvents[0];
-    const corruption = teamEvents.some(e => e.Sitio !== team.iaPermitida);
+      .some(e => e.Sitio !== team.iaPermitida);
     const status = getStatus(latest, team.iaPermitida);
     const image = `assets/${status.toLowerCase()}${team.equipo.replace('equipo ', '')}.png`;
+
+    const promptsHTML = prompts
+      .map(e => `<div class="prompt">${e.Prompt}</div>`)
+      .join('');
 
     const panel = document.createElement('div');
     panel.className = 'panel';
@@ -220,7 +236,7 @@ function render() {
       <img src="${image}">
       ${corruption ? '<div class="overlay"></div>' : ''}
       <div class="info"><strong>${team.equipo}</strong> - ${status}<br>${team.iaPermitida}</div>
-      <div class="prompt-container">${latest && latest['Tipo de evento'] === 'prompt_sent' && latest.Prompt ? `<div class="prompt">${latest.Prompt}</div>` : ''}</div>
+      <div class="prompt-container">${promptsHTML}</div>
     `;
 
     document.body.appendChild(panel);
@@ -228,54 +244,24 @@ function render() {
 }
 
 function updateStatusesOnly() {
-  document.querySelectorAll('.panel').forEach(panel => {
-    const team = panel.dataset.team;
-    const allowed = panel.dataset.allowed;
+  CONFIG.forEach(team => {
+    const panel = document.querySelector(`.panel[data-team="${team.equipo}"]`);
+    if (!panel) return;
 
-    const teamEvents = events
-      .filter(e => (e.Equipo || '').toLowerCase() === team)
-      .sort((a,b) => parseTimestamp(b.Timestamp) - parseTimestamp(a.Timestamp));
-
-    const latest = teamEvents[0];
-    const status = getStatus(latest, allowed);
-    const image = `assets/${status.toLowerCase()}${team.replace('equipo ', '')}.png`;
-    const corruption = teamEvents.some(e => e.Sitio !== allowed);
+    const latest = getLatestEvent(team.equipo);
+    const status = getStatus(latest, team.iaPermitida);
+    const image = `assets/${status.toLowerCase()}${team.equipo.replace('equipo ', '')}.png`;
 
     const img = panel.querySelector('img');
-    const statusDiv = panel.querySelector('.status');
-    const promptContainer = panel.querySelector('.prompt-container');
-    const promptDiv = panel.querySelector('.prompt');
+    const info = panel.querySelector('.info');
 
     if (img && img.dataset.current !== image) {
       img.src = image;
       img.dataset.current = image;
     }
-    if (statusDiv) statusDiv.textContent = status;
 
-    const newPrompt = latest && latest['Tipo de evento'] === 'prompt_sent' ? latest.Prompt || '' : '';
-
-    if (newPrompt) {
-      if (!promptDiv) {
-        const div = document.createElement('div');
-        div.className = 'prompt';
-        div.textContent = newPrompt;
-        promptContainer.prepend(div);
-      } else if (promptDiv.textContent !== newPrompt) {
-        const div = document.createElement('div');
-        div.className = 'prompt';
-        div.textContent = newPrompt;
-        promptContainer.prepend(div);
-      }
-
-      while (promptContainer.children.length > 20) {
-        promptContainer.removeChild(promptContainer.lastElementChild);
-      }
-    }
-
-    if (corruption && !panel.querySelector('.overlay')) {
-      const overlay = document.createElement('div');
-      overlay.className = 'overlay';
-      panel.appendChild(overlay);
+    if (info) {
+      info.innerHTML = `<strong>${team.equipo}</strong> - ${status}<br>${team.iaPermitida}`;
     }
   });
 }
