@@ -183,9 +183,8 @@ async function fetchSheets() {
       iaPermitida: row['IA Permitida']
     }));
 
-    const firstLoad = events.length === 0;
     events = newEvents;
-    if (firstLoad) render();
+    render();
 
     const ahora = new Date();
     const ultimoEvento = events[events.length - 1];
