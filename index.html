@@ -122,13 +122,13 @@ function parseCSVLine(line) {
 }
 
 function csvToObjects(csv) {
-  const lines = csv.trim().split(/\r?\n/);
-  const headers = parseCSVLine(lines[0]).map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const values = parseCSVLine(line);
+  const rows = parseCSV(csv.trim());
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((header, i) => {
-      obj[header] = (values[i] || '').trim();
+      obj[header] = (row[i] || '').trim();
     });
     return obj;
   });
@@ -141,26 +141,50 @@ function weightedThinkingDuration(prompt = '') {
   return Math.floor(5000 + ratio * 25000);
 }
 
-function parseTimestamp(ts) {
+  function parseTimestamp(ts) {
   if (!ts) return null;
-  const [datePart, timePart] = ts.split(' ');
-  const [day, month, year] = datePart.split('/');
-  return new Date(`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${timePart}`);
+  const parts = ts.split(' ');
+  if (parts.length < 2) return null;
+  const dateParts = parts[0].split('/');
+  if (dateParts.length < 3) return null;
+  const [day, month, year] = dateParts;
+  return new Date(`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${parts[1]}`);
+}
+
+  function parseCSV(csv) {
+  const rows = [];
+  let cur = '', inQ = false, row = [];
+  for (let i = 0; i < csv.length; i++) {
+    const ch = csv[i];
+    const next = csv[i + 1];
+    if (ch === '"') {
+      if (inQ && next === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      row.push(cur); cur = '';
+    } else if ((ch === '\n' || (ch === '\r' && next === '\n')) && !inQ) {
+      if (ch === '\r') i++;
+      row.push(cur); cur = '';
+      rows.push(row); row = [];
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
 }
 
 function getStatus(event, allowedAI) {
   if (!event) return 'SLEEPING';
-
-  const diff = Date.now() - parseTimestamp(event.Timestamp).getTime();
-
+  const ts = parseTimestamp(event.Timestamp);
+  if (!ts) return 'SLEEPING';
+  const diff = Date.now() - ts.getTime();
   if (diff > 60000) return 'SLEEPING';
   if (event['Tipo de evento'] === 'visit' && event.Sitio === allowedAI) return 'AWAKE';
-
   if (event['Tipo de evento'] === 'prompt_sent') {
     const thinkingMs = weightedThinkingDuration(event.Prompt || '');
     return diff <= thinkingMs ? 'THINKING' : 'ANSWERING';
   }
-
   return 'SLEEPING';
 }
 
