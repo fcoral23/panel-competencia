@@ -141,10 +141,17 @@ function weightedThinkingDuration(prompt = '') {
   return Math.floor(5000 + ratio * 25000);
 }
 
+function parseTimestamp(ts) {
+  if (!ts) return null;
+  const [datePart, timePart] = ts.split(' ');
+  const [day, month, year] = datePart.split('/');
+  return new Date(`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${timePart}`);
+}
+
 function getStatus(event, allowedAI) {
   if (!event) return 'SLEEPING';
 
-  const diff = Date.now() - new Date(event.Timestamp).getTime();
+  const diff = Date.now() - parseTimestamp(event.Timestamp).getTime();
 
   if (diff > 60000) return 'SLEEPING';
   if (event['Tipo de evento'] === 'visit' && event.Sitio === allowedAI) return 'AWAKE';
