@@ -157,35 +157,44 @@ function getStatus(event, allowedAI) {
 
 async function fetchSheets() {
   try {
+    console.log('🔄 Fetching events...', EVENTS_URL);
+    console.log('🔄 Fetching config...', CONFIG_URL);
+
     const eventsRes = await fetch(EVENTS_URL + '&t=' + Date.now(), { cache: 'no-store' });
     const configRes = await fetch(CONFIG_URL + '&t=' + Date.now(), { cache: 'no-store' });
 
-    if (!eventsRes.ok)
-  throw new Error(
-    `Events HTTP ${eventsRes.status}`);
-if (!configRes.ok)
-  throw new Error(
-    `Config HTTP ${configRes.status}`);
-    
+    console.log('Events status:', eventsRes.status, eventsRes.ok);
+    console.log('Config status:', configRes.status, configRes.ok);
+
+    if (!eventsRes.ok) throw new Error(`Events HTTP ${eventsRes.status}`);
+    if (!configRes.ok) throw new Error(`Config HTTP ${configRes.status}`);
+
     const eventsText = await eventsRes.text();
     const configText = await configRes.text();
 
+    console.log('Events (primeros 300 chars):', eventsText.slice(0, 300));
+    console.log('Config (primeros 300 chars):', configText.slice(0, 300));
+
     const newEvents = csvToObjects(eventsText);
     const rawConfig = csvToObjects(configText);
+
+    console.log('Events parseados:', newEvents);
+    console.log('Config parseado:', rawConfig);
 
     CONFIG = rawConfig.map(row => ({
       equipo: row['Equipo'].toLowerCase(),
       iaPermitida: row['IA Permitida']
     }));
 
+    console.log('CONFIG final:', CONFIG);
+
     const firstLoad = events.length === 0;
     events = newEvents;
-
     if (firstLoad) {
       render();
     }
   } catch (e) {
-    console.error(e);
+    console.error('❌ Error:', e);
   }
 }
 
