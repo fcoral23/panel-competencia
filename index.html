@@ -209,7 +209,8 @@ async function fetchSheets() {
 }
 
 function render() {
-  document.body.innerHTML = '';
+  document.body.innerHTML = '<div id="debug-timer" style="position:fixed;top:8px;right:12px;z-index:999;background:rgba(0,0,0,0.7);color:white;font-size:12px;padding:6px 10px;border-radius:8px;font-family:monospace;"></div>';
+
 
   CONFIG.forEach(team => {
     const teamEvents = events
