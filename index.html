@@ -45,7 +45,7 @@
       bottom: 16px;
       left: 16px;
       right: 16px;
-      height: 38%;
+      height: 38%; /* AJUSTA AQUÍ altura zona prompts */
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
@@ -58,7 +58,9 @@
       mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0.35) 92%, rgba(0,0,0,0) 100%);
       -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0.35) 92%, rgba(0,0,0,0) 100%);
     }
+
     .prompt-container::-webkit-scrollbar { display: none; }
+
     .prompt {
       background: rgba(255,255,255,0.55);
       color: black;
@@ -66,7 +68,7 @@
       border-radius: 18px;
       font-size: 14px;
       line-height: 1.35;
-      max-height: calc(1.35em * 5);
+      max-height: calc(1.35em * 5); /* AJUSTA AQUÍ max líneas */
       overflow-y: auto;
       overflow-x: hidden;
       white-space: pre-wrap;
@@ -78,7 +80,11 @@
       backdrop-filter: blur(4px);
       scrollbar-width: thin;
     }
-    .prompt::-webkit-scrollbar { width: 6px; }
+
+    .prompt::-webkit-scrollbar {
+      width: 6px;
+    }
+
     .status {
       position: absolute;
       bottom: 16px;
@@ -94,54 +100,6 @@
 <body>
 <script>
 let CONFIG = [];
-const EVENTS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQlqQjUPj8pVSqMYtpv_ruoEUuVfGLazimi071uc6E9rrmbPYo1ll_SduxU0itaTkgPbE33-do9h7HF/pub?gid=1548035625&single=true&output=csv';
-const CONFIG_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQlqQjUPj8pVSqMYtpv_ruoEUuVfGLazimi071uc6E9rrmbPYo1ll_SduxU0itaTkgPbE33-do9h7HF/pub?gid=1832744232&single=true&output=csv';
-
-function parseCSV(csv) {
-  const rows = [];
-  let cur = '', inQ = false, row = [];
-  for (let i = 0; i < csv.length; i++) {
-    const ch = csv[i];
-    const next = csv[i + 1];
-    if (ch === '"') {
-      if (inQ && next === '"') { cur += '"'; i++; }
-      else inQ = !inQ;
-    } else if (ch === ',' && !inQ) {
-      row.push(cur); cur = '';
-    } else if ((ch === '\n' || (ch === '\r' && next === '\n')) && !inQ) {
-      if (ch === '\r') i++;
-      row.push(cur); cur = '';
-      rows.push(row); row = [];
-    } else {
-      cur += ch;
-    }
-  }
-  if (cur || row.length) { row.push(cur); rows.push(row); }
-  return rows;
-}
-
-function csvToObjects(csv) {
-  const rows = parseCSV(csv.trim());
-  if (rows.length < 2) return [];
-  const headers = rows[0].map(h => h.trim());
-  return rows.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((header, i) => {
-      obj[header] = (row[i] || '').trim();
-    });
-    return obj;
-  });
-}
-
-function parseTimestamp(ts) {
-  if (!ts) return null;
-  const parts = ts.split(' ');
-  if (parts.length < 2) return null;
-  const dateParts = parts[0].split('/');
-  if (dateParts.length < 3) return null;
-  const [day, month, year] = dateParts;
-  return new Date(`${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}T${parts[1]}`);
-}
 
 let events = [];
 
@@ -152,80 +110,57 @@ function weightedThinkingDuration(prompt = '') {
 
 function getStatus(event, allowedAI) {
   if (!event) return 'SLEEPING';
-  const ts = parseTimestamp(event.Timestamp);
-  if (!ts) return 'SLEEPING';
-  const diff = Date.now() - ts.getTime();
+
+  const diff = Date.now() - new Date(event.Timestamp).getTime();
+
   if (diff > 60000) return 'SLEEPING';
   if (event['Tipo de evento'] === 'visit' && event.Sitio === allowedAI) return 'AWAKE';
+
   if (event['Tipo de evento'] === 'prompt_sent') {
     const thinkingMs = weightedThinkingDuration(event.Prompt || '');
     return diff <= thinkingMs ? 'THINKING' : 'ANSWERING';
   }
+
   return 'SLEEPING';
-}
-
-function getTeamPrompts(teamEquipo) {
-  return events
-    .filter(e => (e.Equipo || '').toLowerCase() === teamEquipo && e['Tipo de evento'] === 'prompt_sent' && e.Prompt)
-    .sort((a, b) => parseTimestamp(a.Timestamp) - parseTimestamp(b.Timestamp));
-}
-
-function getLatestEvent(teamEquipo) {
-  const teamEvents = events
-    .filter(e => (e.Equipo || '').toLowerCase() === teamEquipo)
-    .sort((a, b) => parseTimestamp(b.Timestamp) - parseTimestamp(a.Timestamp));
-  return teamEvents[0] || null;
 }
 
 async function fetchSheets() {
   try {
-    const eventsRes = await fetch(EVENTS_URL + '&t=' + Date.now(), { cache: 'no-store' });
-    const configRes = await fetch(CONFIG_URL + '&t=' + Date.now(), { cache: 'no-store' });
+        const eventsRes = await fetch('https://opensheet.elk.sh/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/Eventos');
+    const configRes = await fetch('https://opensheet.elk.sh/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/config');
 
-    if (!eventsRes.ok) throw new Error(`Events HTTP ${eventsRes.status}`);
-    if (!configRes.ok) throw new Error(`Config HTTP ${configRes.status}`);
 
-    const eventsText = await eventsRes.text();
-    const configText = await configRes.text();
-
-    const newEvents = csvToObjects(eventsText);
-    const rawConfig = csvToObjects(configText);
+    const newEvents = await eventsRes.json();
+    const rawConfig = await configRes.json();
 
     CONFIG = rawConfig.map(row => ({
       equipo: row['Equipo'].toLowerCase(),
       iaPermitida: row['IA Permitida']
     }));
 
+    const firstLoad = events.length === 0;
     events = newEvents;
-    render();
 
-    const ahora = new Date();
-    const ultimoEvento = getLatestEvent(CONFIG[0]?.equipo || '');
-    const tsEvento = ultimoEvento ? parseTimestamp(ultimoEvento.Timestamp) : null;
-    const diff = tsEvento ? Math.round((ahora - tsEvento) / 1000) : '?';
-    const timer = document.getElementById('debug-timer');
-    if (timer) timer.textContent = `Fetch: ${ahora.toLocaleTimeString()} | Evento hace: ${diff}s`;
-
+    if (firstLoad) {
+      render();
+    }
   } catch (e) {
-    console.error('❌ Error:', e);
+    console.error(e);
   }
 }
 
 function render() {
-  document.body.innerHTML = '<div id="debug-timer" style="position:fixed;top:8px;right:12px;z-index:999;background:rgba(0,0,0,0.7);color:white;font-size:12px;padding:6px 10px;border-radius:8px;font-family:monospace;"></div>';
+  document.body.innerHTML = '';
 
   CONFIG.forEach(team => {
-    const latest = getLatestEvent(team.equipo);
-    const prompts = getTeamPrompts(team.equipo);
-    const corruption = events
+    const teamEvents = events
       .filter(e => (e.Equipo || '').toLowerCase() === team.equipo)
-      .some(e => e.Sitio !== team.iaPermitida);
+      .sort((a,b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+    const latest = teamEvents[0];
+    const corruption = teamEvents.some(e => e.Sitio !== team.iaPermitida);
     const status = getStatus(latest, team.iaPermitida);
     const image = `assets/${status.toLowerCase()}${team.equipo.replace('equipo ', '')}.png`;
-
-    const promptsHTML = prompts
-      .map(e => `<div class="prompt">${e.Prompt}</div>`)
-      .join('');
 
     const panel = document.createElement('div');
     panel.className = 'panel';
@@ -236,7 +171,8 @@ function render() {
       <img src="${image}">
       ${corruption ? '<div class="overlay"></div>' : ''}
       <div class="info"><strong>${team.equipo}</strong> - ${status}<br>${team.iaPermitida}</div>
-      <div class="prompt-container">${promptsHTML}</div>
+      <div class="prompt-container">${latest && latest['Tipo de evento'] === 'prompt_sent' && latest.Prompt ? `<div class="prompt">${latest.Prompt}</div>` : ''}</div>
+      
     `;
 
     document.body.appendChild(panel);
@@ -244,30 +180,60 @@ function render() {
 }
 
 function updateStatusesOnly() {
-  CONFIG.forEach(team => {
-    const panel = document.querySelector(`.panel[data-team="${team.equipo}"]`);
-    if (!panel) return;
+  document.querySelectorAll('.panel').forEach(panel => {
+    const team = panel.dataset.team;
+    const allowed = panel.dataset.allowed;
 
-    const latest = getLatestEvent(team.equipo);
-    const status = getStatus(latest, team.iaPermitida);
-    const image = `assets/${status.toLowerCase()}${team.equipo.replace('equipo ', '')}.png`;
+    const teamEvents = events
+      .filter(e => (e.Equipo || '').toLowerCase() === team)
+      .sort((a,b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+    const latest = teamEvents[0];
+    const status = getStatus(latest, allowed);
+    const image = `assets/${status.toLowerCase()}${team.replace('equipo ', '')}.png`;
+    const corruption = teamEvents.some(e => e.Sitio !== allowed);
 
     const img = panel.querySelector('img');
-    const info = panel.querySelector('.info');
+    const statusDiv = panel.querySelector('.status');
+    const promptContainer = panel.querySelector('.prompt-container');
+    const promptDiv = panel.querySelector('.prompt');
 
     if (img && img.dataset.current !== image) {
       img.src = image;
       img.dataset.current = image;
     }
+    if (statusDiv) statusDiv.textContent = status;
 
-    if (info) {
-      info.innerHTML = `<strong>${team.equipo}</strong> - ${status}<br>${team.iaPermitida}`;
+    const newPrompt = latest && latest['Tipo de evento'] === 'prompt_sent' ? latest.Prompt || '' : '';
+
+    if (newPrompt) {
+      if (!promptDiv) {
+        const div = document.createElement('div');
+        div.className = 'prompt';
+        div.textContent = newPrompt;
+        promptContainer.prepend(div);
+      } else if (promptDiv.textContent !== newPrompt) {
+        const div = document.createElement('div');
+        div.className = 'prompt';
+        div.textContent = newPrompt;
+        promptContainer.prepend(div);
+      }
+
+      while (promptContainer.children.length > 20) {
+        promptContainer.removeChild(promptContainer.lastElementChild);
+      }
+    }
+
+    if (corruption && !panel.querySelector('.overlay')) {
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+      panel.appendChild(overlay);
     }
   });
 }
 
 fetchSheets();
-setInterval(fetchSheets, 15000);
+setInterval(fetchSheets, 10000); /* AJUSTA AQUÍ polling ms */
 setInterval(updateStatusesOnly, 1000);
 </script>
 </body>
