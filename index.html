@@ -98,6 +98,7 @@
   </style>
 </head>
 <body>
+<div id="debug-timer" style="position:fixed;top:8px;right:12px;z-index:999;background:rgba(0,0,0,0.7);color:white;font-size:12px;padding:6px 10px;border-radius:8px;font-family:monospace;"></div>
 <script>
 let CONFIG = [];
 const EVENTS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQlqQjUPj8pVSqMYtpv_ruoEUuVfGLazimi071uc6E9rrmbPYo1ll_SduxU0itaTkgPbE33-do9h7HF/pub?gid=1548035625&single=true&output=csv';
@@ -187,13 +188,21 @@ async function fetchSheets() {
       iaPermitida: row['IA Permitida']
     }));
 
-    console.log('CONFIG final:', CONFIG);
+   console.log('CONFIG final:', CONFIG);
 
     const firstLoad = events.length === 0;
     events = newEvents;
     if (firstLoad) {
       render();
     }
+
+    const ahora = new Date();
+    const ultimoEvento = events[events.length - 1];
+    const tsEvento = ultimoEvento ? new Date(ultimoEvento.Timestamp) : null;
+    const diff = tsEvento ? Math.round((ahora - tsEvento) / 1000) : '?';
+    document.getElementById('debug-timer').textContent =
+      `Fetch: ${ahora.toLocaleTimeString()} | Evento hace: ${diff}s`;
+
   } catch (e) {
     console.error('❌ Error:', e);
   }
