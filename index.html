@@ -103,17 +103,32 @@ let CONFIG = [];
 const EVENTS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQlqQjUPj8pVSqMYtpv_ruoEUuVfGLazimi071uc6E9rrmbPYo1ll_SduxU0itaTkgPbE33-do9h7HF/pub?gid=1548035625&single=true&output=csv';
 const CONFIG_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQlqQjUPj8pVSqMYtpv_ruoEUuVfGLazimi071uc6E9rrmbPYo1ll_SduxU0itaTkgPbE33-do9h7HF/pub?gid=1832744232&single=true&output=csv';
 
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i+1]==='"')
+        { cur+='"'; i++; }
+      else inQ = !inQ;
+    } else if (ch===',' && !inQ)
+      { result.push(cur); cur=''; }
+    else cur += ch;
+  }
+  result.push(cur);
+  return result;
+}
+
 function csvToObjects(csv) {
-  const lines = csv.trim().split(/\r?\n/);
-  const headers = lines[0].split(',').map(h => h.trim());
+  const lines = csv.trim()
+    .split(/\r?\n/);
+  const headers = parseCSVLine(lines[0])
+    .map(h => h.trim());
 
   return lines.slice(1).map(line => {
-    const values = line.split(',');
-    const obj = {};
-    headers.forEach((header, i) => {
-      obj[header] = (values[i] || '').trim();
-    });
-    return obj;
+    const values = parseCSVLine(line);
+    …
   });
 }
 
@@ -145,6 +160,13 @@ async function fetchSheets() {
     const eventsRes = await fetch(EVENTS_URL + '&t=' + Date.now(), { cache: 'no-store' });
     const configRes = await fetch(CONFIG_URL + '&t=' + Date.now(), { cache: 'no-store' });
 
+    if (!eventsRes.ok)
+  throw new Error(
+    `Events HTTP ${eventsRes.status}`);
+if (!configRes.ok)
+  throw new Error(
+    `Config HTTP ${configRes.status}`);
+    
     const eventsText = await eventsRes.text();
     const configText = await configRes.text();
 
