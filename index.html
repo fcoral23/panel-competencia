@@ -171,8 +171,10 @@ function render() {
       <img src="${image}">
       ${corruption ? '<div class="overlay"></div>' : ''}
       <div class="info"><strong>${team.equipo}</strong> - ${status}<br>${team.iaPermitida}</div>
-      <div class="prompt-container">
-  <div class="prompt">TEST PROMPT VISIBLE</div>
+     <div class="prompt-container">
+  ${latest && clean(latest['Tipo de evento']) === 'prompt_sent' && latest.Prompt
+    ? `<div class="prompt">${latest.Prompt}</div>`
+    : ''}
 </div>
     `;
 
