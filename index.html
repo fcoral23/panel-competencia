@@ -194,7 +194,7 @@ function updateStatusesOnly() {
     const corruption = teamEvents.some(e => e.Sitio !== allowed);
 
     const img = panel.querySelector('img');
-    const statusDiv = panel.querySelector('.status');
+    const infoDiv = panel.querySelector('.info');
     const promptContainer = panel.querySelector('.prompt-container');
     const promptDiv = panel.querySelector('.prompt');
 
@@ -202,7 +202,7 @@ function updateStatusesOnly() {
       img.src = image;
       img.dataset.current = image;
     }
-    if (statusDiv) statusDiv.textContent = status;
+    if (infoDiv) infoDiv.innerHTML = `<strong>${team}</strong> - ${status}<br>${allowed}`;
 
     const newPrompt = latest && latest['Tipo de evento'] === 'prompt_sent' ? latest.Prompt || '' : '';
 
