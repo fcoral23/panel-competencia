@@ -41,23 +41,21 @@
       font-size: 14px;
     }
     .prompt-container {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      right: 16px;
-      height: 38%; /* AJUSTA AQUÍ altura zona prompts */
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column-reverse;
-      justify-content: flex-start;
-      align-items: stretch;
-      gap: 10px;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0.35) 92%, rgba(0,0,0,0) 100%);
-      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0.35) 92%, rgba(0,0,0,0) 100%);
-    }
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  height: 38%; /* AJUSTA AQUÍ altura zona prompts */
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 10px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
 
     .prompt-container::-webkit-scrollbar { display: none; }
 
@@ -211,7 +209,7 @@ function updateStatusesOnly() {
         const div = document.createElement('div');
         div.className = 'prompt';
         div.textContent = newPrompt;
-        promptContainer.prepend(div);
+        promptContainer.appendChild(div);
       } else if (promptDiv.textContent !== newPrompt) {
         const div = document.createElement('div');
         div.className = 'prompt';
