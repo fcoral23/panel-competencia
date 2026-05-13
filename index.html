@@ -224,10 +224,13 @@ function updateStatusesOnly() {
       }
     }
 
-    if (corruption && !panel.querySelector('.overlay')) {
+    const existingOverlay = panel.querySelector('.overlay');
+    if (corruption && !existingOverlay) {
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
       panel.appendChild(overlay);
+    } else if (!corruption && existingOverlay) {
+      existingOverlay.remove();
     }
   });
 }
