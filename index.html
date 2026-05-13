@@ -109,6 +109,7 @@ function weightedThinkingDuration(prompt = '') {
 }
 
 function getStatus(event, allowedAI) {
+  console.log("tipo evento raw:", event?.['Tipo de evento']);
   if (!event) return 'SLEEPING';
 
   const diff = Date.now() - new Date(event.Timestamp).getTime();
