@@ -275,10 +275,20 @@ function updateStatusesOnly() {
     if (status === 'ANSWERING' && teamBinary[team] && (!binaryDiv || binaryDiv.textContent !== teamBinary[team].text)) {
       const div = document.createElement('div');
       div.className = 'prompt binary';
-      div.textContent = teamBinary[team].text;
+      div.textContent = '';
       div.style.background = teamBinary[team].color;
       div.style.color = 'black';
       promptContainer.prepend(div);
+      const fullText = teamBinary[team].text;
+      let i = 0;
+      const typing = setInterval(() => {
+        if (i < fullText.length) {
+          div.textContent += fullText[i];
+          i++;
+        } else {
+          clearInterval(typing);
+        }
+      }, 30);
     }
 
     const existingOverlay = panel.querySelector('.overlay');
