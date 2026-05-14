@@ -279,9 +279,7 @@ function updateStatusesOnly() {
       div.style.background = teamBinary[team].color;
       div.style.color = 'black';
       promptContainer.prepend(div);
-    } else if (status !== 'ANSWERING' && binaryDiv) {
-      binaryDiv.remove();
-    }
+    // burbuja binaria permanece aunque cambie el estado
 
     const existingOverlay = panel.querySelector('.overlay');
     if (corruption && !existingOverlay) {
