@@ -272,7 +272,7 @@ function updateStatusesOnly() {
     }
 
     // Burbuja binaria en ANSWERING
-    if (status === 'ANSWERING' && teamBinary[team] && !binaryDiv) {
+    if (status === 'ANSWERING' && teamBinary[team] && (!binaryDiv || binaryDiv.textContent !== teamBinary[team].text)) {
       const div = document.createElement('div');
       div.className = 'prompt binary';
       div.textContent = teamBinary[team].text;
