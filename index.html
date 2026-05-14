@@ -154,9 +154,9 @@ function render() {
   document.body.innerHTML = '';
 
   CONFIG.forEach(team => {
-    const teamEvents = events
+   const teamEvents = events
       .filter(e => (e.Equipo || '').toLowerCase() === team.equipo)
-      .sort((a,b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+      .sort((a,b) => events.indexOf(b) - events.indexOf(a));
 
     const latest = teamEvents[0];
     const corruption = teamEvents.some(e => e.Sitio !== team.iaPermitida);
@@ -188,9 +188,9 @@ function updateStatusesOnly() {
     const team = panel.dataset.team;
     const allowed = panel.dataset.allowed;
 
-    const teamEvents = events
+   const teamEvents = events
       .filter(e => (e.Equipo || '').toLowerCase() === team)
-      .sort((a,b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+      .sort((a,b) => events.indexOf(b) - events.indexOf(a));
 
     const latest = teamEvents[0];
     const status = getStatus(latest, allowed);
