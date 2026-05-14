@@ -103,6 +103,7 @@ let CONFIG = [];
 let events = [];
 let teamStatus = {};
 let teamBinary = {};
+let teamBinaryActive = {};
 
 function getIAColor(ia) {
   if (ia === 'Claude') return '#D97757';
@@ -272,31 +273,27 @@ function updateStatusesOnly() {
     }
 
   // Burbuja binaria en ANSWERING
-if (status !== 'ANSWERING') {
-  const oldBinary = promptContainer.querySelector(`.prompt.binary[data-binary-team="${team}"]`);
-  if (oldBinary) oldBinary.removeAttribute('data-binary-team');
+if (status === 'ANSWERING' && teamBinary[team] && !teamBinaryActive[team]) {
+  teamBinaryActive[team] = true;
+  const div = document.createElement('div');
+  div.className = 'prompt binary';
+  div.textContent = '';
+  div.style.background = teamBinary[team].color;
+  div.style.color = 'black';
+  promptContainer.prepend(div);
+  const fullText = teamBinary[team].text;
+  let i = 0;
+  const typing = setInterval(() => {
+    if (i < fullText.length) {
+      div.textContent += fullText[i];
+      i++;
+    } else {
+      clearInterval(typing);
+    }
+  }, 30);
 }
-if (status === 'ANSWERING' && teamBinary[team]) {
-  const existingBinary = promptContainer.querySelector(`.prompt.binary[data-binary-team="${team}"]`);
-  if (!existingBinary) {
-    const div = document.createElement('div');
-    div.className = 'prompt binary';
-    div.dataset.binaryTeam = team;
-    div.textContent = '';
-    div.style.background = teamBinary[team].color;
-    div.style.color = 'black';
-    promptContainer.prepend(div);
-    const fullText = teamBinary[team].text;
-    let i = 0;
-    const typing = setInterval(() => {
-      if (i < fullText.length) {
-        div.textContent += fullText[i];
-        i++;
-      } else {
-        clearInterval(typing);
-      }
-    }, 30);
-  }
+if (status === 'AWAKE' || status === 'SLEEPING') {
+  teamBinaryActive[team] = false;
 }
 
     const existingOverlay = panel.querySelector('.overlay');
