@@ -126,7 +126,7 @@ function generateBinaryString(nombre, thinkingMs) {
 function weightedThinkingDuration(prompt = '') {
   const dur = Math.log(prompt.length + 1) / 3;
   const durAj = dur * dur - 1.5 * dur + 1.25;
-  return Math.floor(durAj * 1000);
+  return Math.floor(durAj * 1000) + 2000;
 }
 
 function getStatus(event, allowedAI, equipo) {
