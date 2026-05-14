@@ -105,8 +105,9 @@ let events = [];
 let teamStatus = {};
 
 function weightedThinkingDuration(prompt = '') {
-  const ratio = Math.min(prompt.length / 300, 1);
-  return Math.floor(5000 + ratio * 25000);
+  const dur = Math.log(prompt.length + 1) / 3;
+  const durAj = dur * dur - 1.5 * dur + 1.25;
+  return Math.floor(durAj * 1000);
 }
 
 function getStatus(event, allowedAI, equipo) {
@@ -117,14 +118,15 @@ function getStatus(event, allowedAI, equipo) {
   return 'SLEEPING';
 }
 
-function triggerPromptSequence(equipo) {
+function triggerPromptSequence(equipo, prompt) {
+  const thinkingMs = weightedThinkingDuration(prompt || '');
   teamStatus[equipo] = 'THINKING';
   setTimeout(() => {
     teamStatus[equipo] = 'ANSWERING';
     setTimeout(() => {
       teamStatus[equipo] = 'AWAKE';
     }, 5000);
-  }, 5000);
+  }, thinkingMs);
 }
   
 async function fetchSheets() {
@@ -154,7 +156,7 @@ async function fetchSheets() {
         const esNuevoPrompt = newLatest &&
           newLatest['Tipo de evento'] === 'prompt_sent' &&
           (!oldLatest || newLatest.Timestamp !== oldLatest.Timestamp);
-        if (esNuevoPrompt) triggerPromptSequence(team.equipo);
+        if (esNuevoPrompt) triggerPromptSequence(team.equipo, newLatest.Prompt);
       });
     }
 
