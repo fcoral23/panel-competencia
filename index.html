@@ -271,8 +271,12 @@ function updateStatusesOnly() {
       }
     }
 
-    // Burbuja binaria en ANSWERING
-    if (status === 'ANSWERING' && teamBinary[team]) {
+  // Burbuja binaria en ANSWERING
+if (status !== 'ANSWERING') {
+  const oldBinary = promptContainer.querySelector(`.prompt.binary[data-binary-team="${team}"]`);
+  if (oldBinary) oldBinary.removeAttribute('data-binary-team');
+}
+if (status === 'ANSWERING' && teamBinary[team]) {
   const existingBinary = promptContainer.querySelector(`.prompt.binary[data-binary-team="${team}"]`);
   if (!existingBinary) {
     const div = document.createElement('div');
