@@ -102,27 +102,28 @@
 let CONFIG = [];
 
 let events = [];
+let teamStatus = {};
 
 function weightedThinkingDuration(prompt = '') {
   const ratio = Math.min(prompt.length / 300, 1);
   return Math.floor(5000 + ratio * 25000);
 }
 
-function getStatus(event, allowedAI) {
-  console.log("tipo evento raw:", event?.['Tipo de evento']);
+function getStatus(event, allowedAI, equipo) {
   if (!event) return 'SLEEPING';
-
-  const diff = Date.now() - new Date(event.Timestamp).getTime();
-
-  if (diff > 300000) return 'SLEEPING';
-  if (event['Tipo de evento'] === 'visit' && event.Sitio === allowedAI) return 'AWAKE';
-
-  if (event['Tipo de evento'] === 'prompt_sent') {
-    const thinkingMs = weightedThinkingDuration(event.Prompt || '');
-    return diff <= thinkingMs ? 'THINKING' : 'ANSWERING';
-  }
-
+  if (teamStatus[equipo]) return teamStatus[equipo];
+  if (event['Tipo de evento'] === 'visit') return 'AWAKE';
   return 'SLEEPING';
+}
+
+function triggerPromptSequence(equipo) {
+  teamStatus[equipo] = 'THINKING';
+  setTimeout(() => {
+    teamStatus[equipo] = 'ANSWERING';
+    setTimeout(() => {
+      teamStatus[equipo] = null;
+    }, 5000);
+  }, 5000);
 }
 
 async function fetchSheets() {
@@ -140,8 +141,23 @@ async function fetchSheets() {
     }));
 
     const firstLoad = events.length === 0;
-    events = newEvents;
 
+    if (!firstLoad) {
+      CONFIG.forEach(team => {
+        const oldLatest = events
+          .filter(e => (e.Equipo || '').toLowerCase() === team.equipo)
+          .sort((a,b) => events.indexOf(b) - events.indexOf(a))[0];
+        const newLatest = newEvents
+          .filter(e => (e.Equipo || '').toLowerCase() === team.equipo)
+          .sort((a,b) => newEvents.indexOf(b) - newEvents.indexOf(a))[0];
+        const esNuevoPrompt = newLatest &&
+          newLatest['Tipo de evento'] === 'prompt_sent' &&
+          (!oldLatest || newLatest.Timestamp !== oldLatest.Timestamp);
+        if (esNuevoPrompt) triggerPromptSequence(team.equipo);
+      });
+    }
+
+    events = newEvents;
     if (firstLoad) {
       render();
     }
@@ -160,7 +176,7 @@ function render() {
 
     const latest = teamEvents[0];
     const corruption = teamEvents.some(e => e.Sitio !== team.iaPermitida);
-    const status = getStatus(latest, team.iaPermitida);
+    const status = getStatus(latest, team.iaPermitida, team.equipo);
     const image = `assets/${status.toLowerCase()}${team.equipo.replace('equipo ', '')}.png`;
 
     const panel = document.createElement('div');
@@ -193,7 +209,7 @@ function updateStatusesOnly() {
       .sort((a,b) => events.indexOf(b) - events.indexOf(a));
 
     const latest = teamEvents[0];
-    const status = getStatus(latest, allowed);
+    const status = getStatus(latest, allowed, team);
     const image = `assets/${status.toLowerCase()}${team.replace('equipo ', '')}.png`;
     const corruption = teamEvents.some(e => e.Sitio !== allowed);
 
