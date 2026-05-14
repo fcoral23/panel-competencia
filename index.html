@@ -113,6 +113,7 @@ function getStatus(event, allowedAI, equipo) {
   if (!event) return 'SLEEPING';
   if (teamStatus[equipo]) return teamStatus[equipo];
   if (event['Tipo de evento'] === 'visit') return 'AWAKE';
+  if (event['Tipo de evento'] === 'prompt_sent') return 'AWAKE';
   return 'SLEEPING';
 }
 
