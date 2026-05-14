@@ -21,12 +21,10 @@
       overflow: hidden;
     }
     .panel img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(0.70); /* AJUSTA AQUÍ el zoom, 1=normal, 1.5=50% más grande */
-  transform-origin: center center; /* AJUSTA AQUÍ el punto de zoom */
-}
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
     .overlay {
       position: absolute;
       inset: 0;
@@ -47,7 +45,7 @@
       bottom: 16px;
       left: 16px;
       right: 16px;
-      height: 38%; /* AJUSTA AQUÍ altura zona prompts */
+      height: 38%;
       overflow-y: auto;
       overflow-x: hidden;
       display: flex;
@@ -60,9 +58,7 @@
       mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0.35) 92%, rgba(0,0,0,0) 100%);
       -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 75%, rgba(0,0,0,0.35) 92%, rgba(0,0,0,0) 100%);
     }
-
     .prompt-container::-webkit-scrollbar { display: none; }
-
     .prompt {
       background: rgba(255,255,255,0.55);
       color: black;
@@ -70,7 +66,7 @@
       border-radius: 18px;
       font-size: 14px;
       line-height: 1.35;
-      max-height: calc(1.35em * 5); /* AJUSTA AQUÍ max líneas */
+      max-height: calc(1.35em * 5);
       overflow-y: auto;
       overflow-x: hidden;
       white-space: pre-wrap;
@@ -82,11 +78,13 @@
       backdrop-filter: blur(4px);
       scrollbar-width: thin;
     }
-
-    .prompt::-webkit-scrollbar {
-      width: 6px;
+    .prompt::-webkit-scrollbar { width: 6px; }
+    .prompt.binary {
+      font-family: monospace;
+      font-size: 11px;
+      word-break: break-all;
+      white-space: normal;
     }
-
     .status {
       position: absolute;
       bottom: 16px;
@@ -102,9 +100,27 @@
 <body>
 <script>
 let CONFIG = [];
-
 let events = [];
 let teamStatus = {};
+let teamBinary = {};
+
+function getIAColor(ia) {
+  if (ia === 'Claude') return '#D97757';
+  if (ia === 'Gemini') return '#7C3AED';
+  if (ia === 'ChatGPT') return '#74AA9C';
+  return '#444';
+}
+
+function toBinary(str) {
+  return str.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join('');
+}
+
+function generateBinaryString(nombre, thinkingMs) {
+  const base = toBinary(nombre);
+  const repeticiones = Math.floor(Math.random() * 5) + 3;
+  const largo = Math.floor(thinkingMs / 10);
+  return (base.repeat(repeticiones)).substring(0, largo);
+}
 
 function weightedThinkingDuration(prompt = '') {
   const dur = Math.log(prompt.length + 1) / 3;
@@ -120,22 +136,26 @@ function getStatus(event, allowedAI, equipo) {
   return 'SLEEPING';
 }
 
-function triggerPromptSequence(equipo, prompt) {
+function triggerPromptSequence(equipo, prompt, iaPermitida) {
   const thinkingMs = weightedThinkingDuration(prompt || '');
+  teamBinary[equipo] = {
+    text: generateBinaryString(equipo, thinkingMs),
+    color: getIAColor(iaPermitida)
+  };
   teamStatus[equipo] = 'THINKING';
   setTimeout(() => {
     teamStatus[equipo] = 'ANSWERING';
     setTimeout(() => {
       teamStatus[equipo] = 'AWAKE';
+      teamBinary[equipo] = null;
     }, 5000);
   }, thinkingMs);
 }
-  
+
 async function fetchSheets() {
   try {
-        const eventsRes = await fetch('https://opensheet.elk.sh/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/Eventos');
+    const eventsRes = await fetch('https://opensheet.elk.sh/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/Eventos');
     const configRes = await fetch('https://opensheet.elk.sh/1X4wUq7yaeTql1bJ4iVTVbYemTthNgXH6Bz6BCK2RFe0/config');
-
 
     const newEvents = await eventsRes.json();
     const rawConfig = await configRes.json();
@@ -158,14 +178,13 @@ async function fetchSheets() {
         const esNuevoPrompt = newLatest &&
           newLatest['Tipo de evento'] === 'prompt_sent' &&
           (!oldLatest || newLatest.Timestamp !== oldLatest.Timestamp);
-        if (esNuevoPrompt) triggerPromptSequence(team.equipo, newLatest.Prompt);
+        if (esNuevoPrompt) triggerPromptSequence(team.equipo, newLatest.Prompt, team.iaPermitida);
       });
     }
 
     events = newEvents;
-    if (firstLoad) {
-      render();
-    }
+    if (firstLoad) render();
+
   } catch (e) {
     console.error(e);
   }
@@ -175,7 +194,7 @@ function render() {
   document.body.innerHTML = '';
 
   CONFIG.forEach(team => {
-   const teamEvents = events
+    const teamEvents = events
       .filter(e => (e.Equipo || '').toLowerCase() === team.equipo)
       .sort((a,b) => events.indexOf(b) - events.indexOf(a));
 
@@ -183,21 +202,23 @@ function render() {
     const corruption = teamEvents.some(e => e.Sitio !== team.iaPermitida);
     const status = getStatus(latest, team.iaPermitida, team.equipo);
     const image = `assets/${status.toLowerCase()}${team.equipo.replace('equipo ', '')}.png`;
+    const bgColor = getIAColor(team.iaPermitida);
 
     const panel = document.createElement('div');
     panel.className = 'panel';
     panel.dataset.team = team.equipo;
     panel.dataset.allowed = team.iaPermitida;
+    panel.style.background = bgColor;
 
     panel.innerHTML = `
-      <img src="${image}">
+      <img src="${image}" data-current="${image}">
       ${corruption ? '<div class="overlay"></div>' : ''}
       <div class="info"><strong>${team.equipo}</strong> - ${status}<br>${team.iaPermitida}</div>
-     <div class="prompt-container">
-  ${latest && (latest['Tipo de evento']) === 'prompt_sent' && latest.Prompt
-    ? `<div class="prompt">${latest.Prompt}</div>`
-    : ''}
-</div>
+      <div class="prompt-container">
+        ${latest && latest['Tipo de evento'] === 'prompt_sent' && latest.Prompt
+          ? `<div class="prompt">${latest.Prompt}</div>`
+          : ''}
+      </div>
     `;
 
     document.body.appendChild(panel);
@@ -209,7 +230,7 @@ function updateStatusesOnly() {
     const team = panel.dataset.team;
     const allowed = panel.dataset.allowed;
 
-   const teamEvents = events
+    const teamEvents = events
       .filter(e => (e.Equipo || '').toLowerCase() === team)
       .sort((a,b) => events.indexOf(b) - events.indexOf(a));
 
@@ -221,12 +242,14 @@ function updateStatusesOnly() {
     const img = panel.querySelector('img');
     const infoDiv = panel.querySelector('.info');
     const promptContainer = panel.querySelector('.prompt-container');
-    const promptDiv = panel.querySelector('.prompt');
+    const promptDiv = panel.querySelector('.prompt:not(.binary)');
+    const binaryDiv = panel.querySelector('.prompt.binary');
 
     if (img && img.dataset.current !== image) {
       img.src = image;
       img.dataset.current = image;
     }
+
     if (infoDiv) infoDiv.innerHTML = `<strong>${team}</strong> - ${status}<br>${allowed}`;
 
     const newPrompt = latest && latest['Tipo de evento'] === 'prompt_sent' ? latest.Prompt || '' : '';
@@ -243,22 +266,36 @@ function updateStatusesOnly() {
         div.textContent = newPrompt;
         promptContainer.prepend(div);
       }
-
       while (promptContainer.children.length > 20) {
         promptContainer.removeChild(promptContainer.lastElementChild);
       }
     }
 
-    if (corruption && !panel.querySelector('.overlay')) {
+    // Burbuja binaria en ANSWERING
+    if (status === 'ANSWERING' && teamBinary[team] && !binaryDiv) {
+      const div = document.createElement('div');
+      div.className = 'prompt binary';
+      div.textContent = teamBinary[team].text;
+      div.style.background = teamBinary[team].color;
+      div.style.color = 'black';
+      promptContainer.prepend(div);
+    } else if (status !== 'ANSWERING' && binaryDiv) {
+      binaryDiv.remove();
+    }
+
+    const existingOverlay = panel.querySelector('.overlay');
+    if (corruption && !existingOverlay) {
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
       panel.appendChild(overlay);
+    } else if (!corruption && existingOverlay) {
+      existingOverlay.remove();
     }
   });
 }
 
 fetchSheets();
-setInterval(fetchSheets, 10000); /* AJUSTA AQUÍ polling ms */
+setInterval(fetchSheets, 10000);
 setInterval(updateStatusesOnly, 1000);
 </script>
 </body>
